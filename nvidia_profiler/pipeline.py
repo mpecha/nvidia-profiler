@@ -1,6 +1,7 @@
 import torch as tch
 import torchvision as tch_vision
 import torch.optim as tch_optim
+import torch.autograd.profiler as profiler
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -67,7 +68,9 @@ def objectDetectionBenchmark(
 def runProfiling(
     device: tch.device = tch.device('cuda')
 ) -> None:
-    objectDetectionBenchmark(device=device)
+    with profiler.profile(with_stack=True, profile_memory=True) as prof:
+        objectDetectionBenchmark(device=device, num_epochs=1, batch_size=2)
+    print(prof.key_averages(group_by_stack_n=5).table(sort_by='self_cpu_time_total', row_limit=5))
 
 
 def main() -> None:
