@@ -1,17 +1,16 @@
 import torch as tch
 import torchvision as tch_vision
 import torch.optim as tch_optim
-import torch.autograd.profiler as profiler
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import VisionDataset
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 from alive_progress import alive_bar
 
+from nvidia_profiler.config import setupEnvironment
 from nvidia_profiler.data import OxfordPetDataset
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-
 
 __all__ = [
     'objectDetectionBenchmark',
@@ -21,6 +20,8 @@ __all__ = [
 def objectDetectionBenchmark(
     batch_size: int = 2,
     num_epochs: int = 10,
+    prefetch_factor: int = 2,
+    num_workers: int = 2,
     device: tch.device = tch.device('cuda')
 ) -> None:
     # Set up the model
@@ -38,7 +39,14 @@ def objectDetectionBenchmark(
     ])
 
     datasets: VisionDataset = OxfordPetDataset(root=root, transform=transform)
-    data_loader = DataLoader(datasets, batch_size=batch_size, shuffle=True, collate_fn=lambda x: tuple(zip(*x)))
+    data_loader = DataLoader(
+        datasets,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=lambda x: tuple(zip(*x)),
+        num_workers=num_workers,
+        prefetch_factor=prefetch_factor
+    )
 
     # Train the model
     optimizer = tch_optim.AdamW(model.parameters(), lr=0.005, weight_decay=0.0005)
@@ -66,22 +74,44 @@ def objectDetectionBenchmark(
                 bar()
 
 def runProfiling(
-    device: tch.device = tch.device('cuda')
+    num_epoch: int = 10,
+    batch_size: int = 2,
+    prefetch_factor: int = 2,
+    num_workers: int = 2,
+    device: tch.device = tch.device('cuda:0')
 ) -> None:
     start_event = tch.cuda.Event(enable_timing=True)
     end_event = tch.cuda.Event(enable_timing=True)
 
     start_event.record()
-    objectDetectionBenchmark(device=device, num_epochs=1, batch_size=2)
+    objectDetectionBenchmark(
+        num_epochs=num_epoch,
+        batch_size=batch_size,
+        prefetch_factor=prefetch_factor,
+        num_workers=num_workers,
+        device=device
+    )
     end_event.record()
 
     tch.cuda.synchronize()
     print(f"Elapsed time: {start_event.elapsed_time(end_event):.4f} ms")
 
-
 def main() -> None:
-    device = tch.device('cuda') if tch.cuda.is_available() else tch.device('cpu')
-    runProfiling(device=device)
+    config: dict = setupEnvironment()
+    print(config)
+
+    if 'device' not in config:
+        device: tch.device = tch.device('cuda') if tch.cuda.is_available() else tch.device('cpu')
+    else:
+        device: tch.device = tch.device(config['device'])
+
+    runProfiling(
+        device=device,
+        num_epoch=config['num_epochs'],
+        batch_size=config['batch_size'],
+        prefetch_factor=config['prefetch_factor'],
+        num_workers=config['num_workers']
+    )
 
 if __name__ == '__main__':
     main()
