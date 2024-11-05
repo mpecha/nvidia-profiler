@@ -34,7 +34,6 @@ def setupEnvironment() -> dict:
     config_file: str = config_params['config_file']
     with open(config_file, 'rb') as file:
         config_input = tomllib.load(file)
-    print(config_input)
 
     config_benchmark: dict = {}
     if 'training' in config_input:

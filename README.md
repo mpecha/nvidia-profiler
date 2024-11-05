@@ -7,7 +7,8 @@ It uses PyTorch and the simple profiler employing this framework.
 
 ## Install NVidia runtime for docker
 
-To install nvidia runtime for docker, run the following command:
+It is necessary to have an nvidia runtime. To install this runtime,
+run the following commands:
 
 ```bash
 sudo apt-get install nvidia-container-runtime
@@ -15,9 +16,10 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
 
-For additional information, please refer to the following [link](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+For additional information, we refer to the following 
+[link](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
-## Configuration of the profiler
+## Tool configuration 
 
 The configuration file is located at `.config/config.toml`. The configuration file contains the following parameters:
 
@@ -42,14 +44,30 @@ device = "cuda:0"
 
 ## Build docker image and run the container
 
-To build the docker image, run the following command:
+To build the docker image, run the following command (takes 10 minutes to finish this build):
 
 ```bash
-docker build -t deep-learning-profiler .
+docker build -t dnn-profiler .
 ```
 
-To run the docker container for GPU having id 0, run the following command:
+To start the docker container having access to the first GPU, run the following command:
 
 ```bash
-docker run --gpus '"device=0"' -it deep-learning-profiler --name profiler-gpu-0 -d
+docker run --rm -it --shm-size=150g --gpus '"device=0"' --name profiler-gpu-0 -v ${PWD}/.config:/app/.config dnn-profiler
+```
+
+After the container is started, it automatically runs the profiler. The output of the profiler is shown below: 
+
+```bash
+{'num_epochs': 1, 'batch_size': 2, 'prefetch_factor': 2, 'num_workers': 4}
+Downloading: "https://download.pytorch.org/models/fasterrcnn_resnet50_fpn_coco-258fb6c6.pth" to /root/.cache/torch/hub/checkpoints/fasterrcnn_resnet50_fpn_coco-258fb6c6.pth
+100.0%
+Downloading https://thor.robots.ox.ac.uk/pets/images.tar.gz to data/oxford-iiit-pet/oxford-iiit-pet/images.tar.gz
+100.0%
+Extracting data/oxford-iiit-pet/oxford-iiit-pet/images.tar.gz to data/oxford-iiit-pet/oxford-iiit-pet
+Downloading https://thor.robots.ox.ac.uk/pets/annotations.tar.gz to data/oxford-iiit-pet/oxford-iiit-pet/annotations.tar.gz
+100.0%
+Extracting data/oxford-iiit-pet/oxford-iiit-pet/annotations.tar.gz to data/oxford-iiit-pet/oxford-iiit-pet
+Epoch 1/1
+|█                                       | ▆█▆ 47/1840 [3%] in 29s (~18:10, 1.6/s)
 ```
