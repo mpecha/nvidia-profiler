@@ -80,6 +80,18 @@ def runProfiling(
     num_workers: int = 2,
     device: tch.device = tch.device('cuda:0')
 ) -> None:
+    def printElapsedTime(elapsed_ms: float) -> None:
+        # Convert milliseconds to seconds
+        seconds = elapsed_ms / 1000
+
+        # Calculate hours, minutes, and remaining seconds
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        remaining_seconds = seconds % 60
+
+        # Print the result in hours, minutes, and seconds
+        print(f'Elapsed time: {hours}:{minutes}:{remaining_seconds:.2f} (hh:mm:ss)')
+
     start_event = tch.cuda.Event(enable_timing=True)
     end_event = tch.cuda.Event(enable_timing=True)
 
@@ -94,7 +106,7 @@ def runProfiling(
     end_event.record()
 
     tch.cuda.synchronize()
-    print(f"Elapsed time: {start_event.elapsed_time(end_event):.4f} ms")
+    printElapsedTime(start_event.elapsed_time(end_event))
 
 def main() -> None:
     config: dict = setupEnvironment()
