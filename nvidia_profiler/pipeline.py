@@ -68,14 +68,19 @@ def objectDetectionBenchmark(
 def runProfiling(
     device: tch.device = tch.device('cuda')
 ) -> None:
-    with profiler.profile(with_stack=True, profile_memory=True) as prof:
-        objectDetectionBenchmark(device=device, num_epochs=1, batch_size=2)
-    print(prof.key_averages(group_by_stack_n=5).table(sort_by='self_cpu_time_total', row_limit=5))
+    start_event = tch.cuda.Event(enable_timing=True)
+    end_event = tch.cuda.Event(enable_timing=True)
+
+    start_event.record()
+    objectDetectionBenchmark(device=device, num_epochs=1, batch_size=2)
+    end_event.record()
+
+    tch.cuda.synchronize()
+    print(f"Elapsed time: {start_event.elapsed_time(end_event):.4f} ms")
 
 
 def main() -> None:
     device = tch.device('cuda') if tch.cuda.is_available() else tch.device('cpu')
-
     runProfiling(device=device)
 
 if __name__ == '__main__':
