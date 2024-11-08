@@ -62,6 +62,10 @@ def setupEnvironment() -> dict:
             config_benchmark['num_workers'] = config_training['num_workers']
         else:
             config_benchmark['num_workers'] = 4
+        if 'device' in config_training:
+            if not isinstance(config_training['device'], str):
+                raise ValueError('device must be a string')
+            config_benchmark['device'] = config_training['device']
     else:
         config_benchmark = {
             'num_epochs': 10,
